@@ -1,0 +1,39 @@
+# Build directories
+build/
+build
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+CTestTestfile.cmake
+DartConfiguration.tcl
+compile_commands.json
+
+# Compiled binaries
+*.o
+*.obj
+*.so
+*.a
+*.dll
+*.dylib
+*.exe
+hashmon
+hash_tests
+cli_tests
+
+# Local test artifacts
+*.tmp
+*.log
+*.orig
+
+# Editor / OS noise
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.swp
+*.swo
+*~
