@@ -11,7 +11,7 @@ namespace hashmon
         std::string filename;
         std::string format = "text";
         std::vector<std::string> hashes = {"all"};
-        std::string hashfile;
+        std::string compare_target;
         bool help = false;
         bool error = false;
         std::string error_message;

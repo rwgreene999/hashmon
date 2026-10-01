@@ -141,7 +141,7 @@ namespace hashmon
         std::cout << R"(Usage: )" << program_name << R"( [options] <filename>
   --format <text|json|csv>   Output format (default: text)
   --hash <name>              Hash algorithm(s), comma-separated or 'all' (default: all)
-  --compare <hashfile>       Compare calculated hashes against a text hash list
+  --compare <hashfile|hash>  Compare calculated hashes against a hash file or a hash value
   --help                     Show this help and exit
 
 Examples:
@@ -153,6 +153,8 @@ Examples:
                   << R"( --hash md5,sha256 *.bin
   )" << program_name
                   << R"( --compare hashes.txt --hash sha256 file.txt
+  )" << program_name
+                  << R"( --compare sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824 file.txt
 )";
     }
 
@@ -210,7 +212,7 @@ Examples:
                     options.error_message = "Missing value for --compare";
                     return options;
                 }
-                options.hashfile = args[++i];
+                options.compare_target = trim(args[++i]);
                 continue;
             }
             if (arg.rfind("-", 0) == 0)

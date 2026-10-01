@@ -142,18 +142,29 @@ namespace
     }
 
     void print_text_results(const std::string &path, const std::vector<std::string> &hashes, const std::vector<std::pair<std::string, std::string>> &results,
-                            const std::string &hashfile_path, const std::vector<std::string> &hash_lines)
+                            const std::string &compare_target, const std::vector<std::string> &hash_lines,
+                            const std::string &direct_expected_hash = "", const std::string &direct_expected_algorithm = "")
     {
         std::cout << "File: " << path << "\n";
         for (const auto &[hash_name, hash_value] : results)
         {
             std::string expected = "";
-            if (!hashfile_path.empty())
+            bool has_expected = false;
+            if (!compare_target.empty())
             {
-                expected = extract_expected_hash_for_file(path, hash_name, hash_lines);
+                if (fs::exists(compare_target))
+                {
+                    expected = extract_expected_hash_for_file(path, hash_name, hash_lines);
+                    has_expected = true;
+                }
+                else if (!direct_expected_hash.empty() && (direct_expected_algorithm.empty() || hash_name == direct_expected_algorithm))
+                {
+                    expected = direct_expected_hash;
+                    has_expected = true;
+                }
             }
             std::cout << hash_name << ": " << hash_value;
-            if (!hashfile_path.empty())
+            if (has_expected)
             {
                 std::cout << "  [" << (hashmon::lowercase(hash_value) == hashmon::lowercase(hashmon::trim(expected)) ? "MATCH" : "NO MATCH") << "]";
             }
@@ -207,14 +218,46 @@ int main(int argc, char **argv)
         }
 
         std::vector<std::string> hash_lines;
-        if (!options.hashfile.empty())
+        std::string direct_expected_hash;
+        std::string direct_expected_algorithm;
+        if (!options.compare_target.empty())
         {
-            if (hashmon::has_wildcard(options.filename))
+            const std::string compare_target = hashmon::trim(options.compare_target);
+            if (fs::exists(compare_target))
             {
-                std::cerr << "Wildcard filename is not compatible with --compare\n";
-                return 1;
+                if (hashmon::has_wildcard(options.filename))
+                {
+                    std::cerr << "Wildcard filename is not compatible with --compare\n";
+                    return 1;
+                }
+                hash_lines = hashmon::read_hashfile_lines(compare_target);
             }
-            hash_lines = hashmon::read_hashfile_lines(options.hashfile);
+            else
+            {
+                const std::string lower_target = hashmon::lowercase(compare_target);
+                const std::size_t colon_pos = lower_target.find(':');
+
+                if (colon_pos != std::string::npos)
+                {
+                    direct_expected_algorithm = hashmon::lowercase(hashmon::trim(compare_target.substr(0, colon_pos)));
+                    direct_expected_hash = hashmon::trim(compare_target.substr(colon_pos + 1));
+                }
+                else if (looks_like_hex_digest(compare_target))
+                {
+                    if (hashes_to_run.size() != 1)
+                    {
+                        std::cerr << "Bare compare hash requires exactly one hash algorithm; use --hash sha256 or sha256:<digest>\n";
+                        return 1;
+                    }
+                    direct_expected_algorithm = hashmon::lowercase(hashes_to_run[0]);
+                    direct_expected_hash = compare_target;
+                }
+                else
+                {
+                    std::cerr << "Compare target must be an existing hashfile or a valid hash value\n";
+                    return 1;
+                }
+            }
         }
 
         for (const auto &file_name : file_names)
@@ -228,7 +271,7 @@ int main(int argc, char **argv)
 
             if (options.format == "text")
             {
-                print_text_results(file_name, hashes_to_run, results, options.hashfile, hash_lines);
+                print_text_results(file_name, hashes_to_run, results, options.compare_target, hash_lines, direct_expected_hash, direct_expected_algorithm);
             }
             else if (options.format == "json")
             {
