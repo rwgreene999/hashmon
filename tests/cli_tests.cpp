@@ -65,6 +65,15 @@ int main()
         return 1;
     }
 
+    const std::string direct_hash = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824";
+    const std::string direct_hash_command = binary + " --format text --hash SHA256 --compare " + direct_hash + " " + sample.string();
+    int direct_hash_result = std::system(direct_hash_command.c_str());
+    if (direct_hash_result != 0)
+    {
+        std::cerr << "Direct digest comparison unexpectedly failed\n";
+        return 1;
+    }
+
     std::cout << "cli tests passed\n";
     return 0;
 }

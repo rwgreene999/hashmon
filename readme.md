@@ -73,8 +73,9 @@ constructed in VS-Code by copilot (because Claude said I was out of my quota)
 
 ## plans
 
+- Check file size, if > 10Meg, type time warning 
 - maybe change compare to access a url if that is a standard
-- Change compare to compare against pasted crc as well as compare a file with a hash code in a file
+- CLI-Compare Change compare to compare against pasted crc as well as compare a file with a hash code in a file sha256:xxxxx 
 - add short CLI like -h for --hash
 - consider modifing in a way that GUI line Nemo can show the data (results in popup windows instead of existing CLI)
 - Add the exe download directly to github
@@ -85,8 +86,10 @@ constructed in VS-Code by copilot (because Claude said I was out of my quota)
 
 ```
     cd /hashmon
+    rm -rf build
     cmake -S . -B build
     cmake --build build -j2
+    ctest --test-dir build --output-on-failure
 ```
 
 - Test cases
