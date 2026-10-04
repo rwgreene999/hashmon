@@ -1,7 +1,7 @@
 #include "HashAlgorithms.h"
 
-#include <openssl/evp.h>
-#include <stdexcept>
+#include <array>
+#include <cstdint>
 #include <vector>
 
 #include "hash_utils.h"
@@ -11,39 +11,167 @@ namespace hashmon
     namespace
     {
 
-        std::string compute_digest(const EVP_MD *md, const std::vector<unsigned char> &data)
+        constexpr std::uint64_t rotate_right(std::uint64_t value, std::uint32_t bits)
         {
-            EVP_MD_CTX *ctx = EVP_MD_CTX_new();
-            if (!ctx)
+            return (value >> bits) | (value << (64u - bits));
+        }
+
+        constexpr std::uint64_t choice(std::uint64_t x, std::uint64_t y, std::uint64_t z)
+        {
+            return (x & y) ^ (~x & z);
+        }
+
+        constexpr std::uint64_t majority(std::uint64_t x, std::uint64_t y, std::uint64_t z)
+        {
+            return (x & y) ^ (x & z) ^ (y & z);
+        }
+
+        constexpr std::uint64_t sigma0(std::uint64_t x)
+        {
+            return rotate_right(x, 28u) ^ rotate_right(x, 34u) ^ rotate_right(x, 39u);
+        }
+
+        constexpr std::uint64_t sigma1(std::uint64_t x)
+        {
+            return rotate_right(x, 14u) ^ rotate_right(x, 18u) ^ rotate_right(x, 41u);
+        }
+
+        constexpr std::uint64_t gamma0(std::uint64_t x)
+        {
+            return rotate_right(x, 1u) ^ rotate_right(x, 8u) ^ (x >> 7u);
+        }
+
+        constexpr std::uint64_t gamma1(std::uint64_t x)
+        {
+            return rotate_right(x, 19u) ^ rotate_right(x, 61u) ^ (x >> 6u);
+        }
+
+        std::vector<unsigned char> sha512_digest_bytes(const std::vector<unsigned char> &data)
+        {
+            std::vector<unsigned char> message = data;
+            const std::uint64_t bit_length = static_cast<std::uint64_t>(message.size()) * 8u;
+
+            message.push_back(static_cast<unsigned char>(0x80));
+            while ((message.size() % 128u) != 112u)
             {
-                throw std::runtime_error("Failed to allocate EVP digest context");
+                message.push_back(0u);
             }
 
-            std::vector<unsigned char> digest(EVP_MAX_MD_SIZE);
-            unsigned int digest_len = 0;
-            bool ok = EVP_DigestInit_ex(ctx, md, nullptr) &&
-                      EVP_DigestUpdate(ctx, data.data(), data.size()) &&
-                      EVP_DigestFinal_ex(ctx, digest.data(), &digest_len);
-            EVP_MD_CTX_free(ctx);
-            if (!ok)
+            for (int i = 7; i >= 0; --i)
             {
-                throw std::runtime_error("Failed to compute digest");
+                message.push_back(static_cast<unsigned char>(0u));
+            }
+            for (int i = 7; i >= 0; --i)
+            {
+                message.push_back(static_cast<unsigned char>((bit_length >> (i * 8u)) & 0xFFu));
             }
 
-            digest.resize(digest_len);
-            return hex_encode(digest);
+            static constexpr std::array<std::uint64_t, 8> initial_hash = {
+                0x6A09E667F3BCC908ULL, 0xBB67AE8584CAA73BULL, 0x3C6EF372FE94F82BULL, 0xA54FF53A5F1D36F1ULL,
+                0x510E527FADE682D1ULL, 0x9B05688C2B3E6C1FULL, 0x1F83D9ABFB41BD6BULL, 0x5BE0CD19137E2179ULL};
+
+            std::array<std::uint64_t, 8> hash = initial_hash;
+            static constexpr std::array<std::uint64_t, 80> k = {
+                0x428A2F98D728AE22ULL, 0x7137449123EF65CDULL, 0xB5C0FBCFEC4D3B2FULL, 0xE9B5DBA58189DBBCULL,
+                0x3956C25BF348B538ULL, 0x59F111F1B605D019ULL, 0x923F82A4AF194F9BULL, 0xAB1C5ED5DA6D8118ULL,
+                0xD807AA98A3030242ULL, 0x12835B0145706FBEULL, 0x243185BE4EE4B28CULL, 0x550C7DC3D5FFB4E2ULL,
+                0x72BE5D74F27B896FULL, 0x80DEB1FE3B1696B1ULL, 0x9BDC06A725C71235ULL, 0xC19BF174CF692694ULL,
+                0xE49B69C19EF14AD2ULL, 0xEFBE4786384F25E3ULL, 0x0FC19DC68B8CD5B5ULL, 0x240CA1CC77AC9C65ULL,
+                0x2DE92C6F592B0275ULL, 0x4A7484AA6EA6E483ULL, 0x5CB0A9DCBD41FBD4ULL, 0x76F988DA831153B5ULL,
+                0x983E5152EE66DFABULL, 0xA831C66D2DB43210ULL, 0xB00327C898FB213FULL, 0xBF597FC7BEEF0EE4ULL,
+                0xC6E00BF33DA88FC2ULL, 0xD5A79147930AA725ULL, 0x06CA6351E003826FULL, 0x142929670A0E6E70ULL,
+                0x27B70A8546D22FFCULL, 0x2E1B21385C26C926ULL, 0x4D2C6DFC5AC42AEDULL, 0x53380D139D95B3DFULL,
+                0x650A73548BAF63DEULL, 0x766A0ABB3C77B2A8ULL, 0x81C2C92E47EDAEE6ULL, 0x92722C851482353BULL,
+                0xA2BFE8A14CF10364ULL, 0xA81A664BBC423001ULL, 0xC24B8B70D0F89791ULL, 0xC76C51A30654BE30ULL,
+                0xD192E819D6EF5218ULL, 0xD69906245565A910ULL, 0xF40E35855771202AULL, 0x106AA07032BBD1B8ULL,
+                0x19A4C116B8D2D0C8ULL, 0x1E376C085141AB53ULL, 0x2748774CDF8EEB99ULL, 0x34B0BCB5E19B48A8ULL,
+                0x391C0CB3C5C95A63ULL, 0x4ED8AA4AE3418ACBULL, 0x5B9CCA4F7763E373ULL, 0x682E6FF3D6B2B8A3ULL,
+                0x748F82EE5DEFB2FCULL, 0x78A5636F43172F60ULL, 0x84C87814A1F0AB72ULL, 0x8CC702081A6439ECULL,
+                0x90BEFFFA23631E28ULL, 0xA4506CEBDE82BDE9ULL, 0xBEF9A3F7B2C67915ULL, 0xC67178F2E372532BULL,
+                0xCA273ECEEA26619CULL, 0xD186B8C721C0C207ULL, 0xEADA7DD6CDE0EB1EULL, 0xF57D4F7FEE6ED178ULL,
+                0x06F067AA72176FBAULL, 0x0A637DC5A2C898A6ULL, 0x113F9804BEF90DAEULL, 0x1B710B35131C471BULL,
+                0x28DB77F523047D84ULL, 0x32CAAB7B40C72493ULL, 0x3C9EBE0A15C9BEBCULL, 0x431D67C49C100D4CULL,
+                0x4CC5D4BECB3E42B6ULL, 0x597F299CFC657E2AULL, 0x5FCB6FAB3AD6FAECULL, 0x6C44198C4A475817ULL};
+
+            for (std::size_t offset = 0; offset < message.size(); offset += 128u)
+            {
+                std::array<std::uint64_t, 80> w{};
+                for (std::size_t i = 0; i < 16; ++i)
+                {
+                    const std::size_t base = offset + i * 8u;
+                    w[i] = ((static_cast<std::uint64_t>(message[base]) << 56u) |
+                            (static_cast<std::uint64_t>(message[base + 1]) << 48u) |
+                            (static_cast<std::uint64_t>(message[base + 2]) << 40u) |
+                            (static_cast<std::uint64_t>(message[base + 3]) << 32u) |
+                            (static_cast<std::uint64_t>(message[base + 4]) << 24u) |
+                            (static_cast<std::uint64_t>(message[base + 5]) << 16u) |
+                            (static_cast<std::uint64_t>(message[base + 6]) << 8u) |
+                            static_cast<std::uint64_t>(message[base + 7]));
+                }
+                for (std::size_t i = 16; i < 80; ++i)
+                {
+                    w[i] = gamma1(w[i - 2]) + w[i - 7] + gamma0(w[i - 15]) + w[i - 16];
+                }
+
+                std::uint64_t a = hash[0];
+                std::uint64_t b = hash[1];
+                std::uint64_t c = hash[2];
+                std::uint64_t d = hash[3];
+                std::uint64_t e = hash[4];
+                std::uint64_t f = hash[5];
+                std::uint64_t g = hash[6];
+                std::uint64_t h = hash[7];
+
+                for (std::size_t i = 0; i < 80; ++i)
+                {
+                    const std::uint64_t t1 = h + sigma1(e) + choice(e, f, g) + k[i] + w[i];
+                    const std::uint64_t t2 = sigma0(a) + majority(a, b, c);
+                    h = g;
+                    g = f;
+                    f = e;
+                    e = d + t1;
+                    d = c;
+                    c = b;
+                    b = a;
+                    a = t1 + t2;
+                }
+
+                hash[0] += a;
+                hash[1] += b;
+                hash[2] += c;
+                hash[3] += d;
+                hash[4] += e;
+                hash[5] += f;
+                hash[6] += g;
+                hash[7] += h;
+            }
+
+            std::vector<unsigned char> digest(64u);
+            for (std::size_t i = 0; i < hash.size(); ++i)
+            {
+                const std::uint64_t word = hash[i];
+                digest[i * 8u + 0u] = static_cast<unsigned char>((word >> 56u) & 0xFFu);
+                digest[i * 8u + 1u] = static_cast<unsigned char>((word >> 48u) & 0xFFu);
+                digest[i * 8u + 2u] = static_cast<unsigned char>((word >> 40u) & 0xFFu);
+                digest[i * 8u + 3u] = static_cast<unsigned char>((word >> 32u) & 0xFFu);
+                digest[i * 8u + 4u] = static_cast<unsigned char>((word >> 24u) & 0xFFu);
+                digest[i * 8u + 5u] = static_cast<unsigned char>((word >> 16u) & 0xFFu);
+                digest[i * 8u + 6u] = static_cast<unsigned char>((word >> 8u) & 0xFFu);
+                digest[i * 8u + 7u] = static_cast<unsigned char>(word & 0xFFu);
+            }
+            return digest;
         }
 
     } // namespace
 
     std::string sha512_file(const std::string &path)
     {
-        return compute_digest(EVP_sha512(), read_file_bytes(path));
+        return hex_encode(sha512_digest_bytes(read_file_bytes(path)));
     }
 
     std::string sha512_bytes(const std::vector<unsigned char> &data)
     {
-        return compute_digest(EVP_sha512(), data);
+        return hex_encode(sha512_digest_bytes(data));
     }
 
 } // namespace hashmon

@@ -6,6 +6,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(CTest)
+if(BUILD_TESTING)
+    find_package(OpenSSL REQUIRED)
+endif()
 
 set(HASHMON_SOURCES
     src/main.cpp
@@ -23,7 +26,6 @@ set(HASHMON_SOURCES
 
 add_executable(hashmon ${HASHMON_SOURCES})
 target_include_directories(hashmon PRIVATE src src/hashes)
-target_link_libraries(hashmon PRIVATE crypto)
 target_compile_features(hashmon PRIVATE cxx_std_17)
 
 set(HASH_TEST_SOURCES
@@ -41,7 +43,7 @@ set(HASH_TEST_SOURCES
 
 add_executable(hash_tests ${HASH_TEST_SOURCES})
 target_include_directories(hash_tests PRIVATE src src/hashes)
-target_link_libraries(hash_tests PRIVATE crypto)
+target_link_libraries(hash_tests PRIVATE OpenSSL::Crypto)
 target_compile_features(hash_tests PRIVATE cxx_std_17)
 
 set(CLI_TEST_SOURCES
@@ -60,7 +62,6 @@ set(CLI_TEST_SOURCES
 
 add_executable(cli_tests ${CLI_TEST_SOURCES})
 target_include_directories(cli_tests PRIVATE src src/hashes)
-target_link_libraries(cli_tests PRIVATE crypto)
 target_compile_features(cli_tests PRIVATE cxx_std_17)
 
 add_test(NAME hash_tests COMMAND hash_tests)
