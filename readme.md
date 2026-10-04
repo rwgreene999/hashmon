@@ -84,6 +84,11 @@ constructed in VS-Code by copilot (because Claude said I was out of my quota)
 - DONE: CLI-Compare Change compare to compare against pasted crc as well as compare a file with a hash code in a file sha256:xxxxx 
 - DONE: FilesizeTime - Check file size, if > 10Meg, type time warning  
 - DONE: Rewrite "had to get AI to write the hash code instead of using openSSH's code" 
+      - The AI wront the initial project using OpenSSH hash code for encoding and testing
+      - Since it did't actually write any hasing code, it technically was not doing what I requested
+      - It also require openssh for building, which most machines will have, but still it bugged me
+      - I allowed the test croutines to use openssh for comparision 
+- DONE: TestingUpdate "Validated some of the test, added more test to handle CLI errors"  
 
 
 ## Build process:
