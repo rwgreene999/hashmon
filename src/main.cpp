@@ -14,6 +14,8 @@ namespace fs = std::filesystem;
 namespace
 {
 
+    constexpr std::uintmax_t kLargeFileWarningBytes = 10 * 1024 * 1024; // 10 MiB
+
     std::string calculate_hash_for(const std::string &hash_name, const std::string &file_path)
     {
         if (hash_name == "md5")
@@ -194,6 +196,21 @@ namespace
 
 } // namespace
 
+std::string format_localized_integer(std::uintmax_t value)
+{
+    try
+    {
+        std::ostringstream oss;
+        oss.imbue(std::locale("")); // user/system locale (from LANG/LC_* on Linux)
+        oss << value;
+        return oss.str();
+    }
+    catch (...)
+    {
+        return std::to_string(value); // fallback if locale setup fails
+    }
+}
+
 int main(int argc, char **argv)
 {
     try
@@ -262,6 +279,14 @@ int main(int argc, char **argv)
 
         for (const auto &file_name : file_names)
         {
+            std::error_code ec;
+            const auto file_size = fs::file_size(file_name, ec);
+            if (!ec && file_size > kLargeFileWarningBytes)
+            {
+                const std::uintmax_t file_size_kb = file_size / 1024;
+                std::cout << "[Working large-file] " << file_name << " (" << format_localized_integer(file_size_kb) << " KB)\n";
+            }
+
             std::vector<std::pair<std::string, std::string>> results;
             for (const auto &hash_name : hashes_to_run)
             {
