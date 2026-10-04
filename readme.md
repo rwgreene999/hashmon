@@ -5,18 +5,18 @@
 - Linux program to generate multiple hash results from a file.
 
 ```
-    ./hashmon --help
-    Usage: ./hashmon [options] <filename>
-    --format <text|json|csv>   Output format (default: text)
-    --hash <name>              Hash algorithm(s), comma-separated or 'all' (default: all)
-    --compare <hashfile>       Compare calculated hashes against a text hash list
-    --help                     Show this help and exit
+Usage: build/hashmon [options] <filename>
+  --format <text|json|csv>   Output format (default: text)
+  --hash <name>              Hash algorithm(s), comma-separated or 'all' (default: all)
+  --compare <hashfile|hash>  Compare calculated hashes against a hash file or a hash value
+  --help                     Show this help and exit
 
-    Examples:
-    ./hashmon file.txt
-    ./hashmon --format json --hash sha256 file.txt
-    ./hashmon --hash md5,sha256 *.bin
-    ./hashmon --compare hashes.txt --hash sha256 file.txt
+Examples:
+  build/hashmon file.txt
+  build/hashmon --format json --hash sha256 file.txt
+  build/hashmon --hash md5,sha256 *.bin
+  build/hashmon --compare hashes.txt --hash sha256 file.txt
+  build/hashmon --compare sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824 file.txt
 ```
 
 - Output Example:
@@ -73,12 +73,16 @@ constructed in VS-Code by copilot (because Claude said I was out of my quota)
 
 ## plans
 
-- Check file size, if > 10Meg, type time warning 
+- FilesizeTime - Check file size, if > 10Meg, type time warning 
 - maybe change compare to access a url if that is a standard
-- CLI-Compare Change compare to compare against pasted crc as well as compare a file with a hash code in a file sha256:xxxxx 
+- DONE: CLI-Compare Change compare to compare against pasted crc as well as compare a file with a hash code in a file sha256:xxxxx 
 - add short CLI like -h for --hash
 - consider modifing in a way that GUI line Nemo can show the data (results in popup windows instead of existing CLI)
 - Add the exe download directly to github
+
+## complete list
+- DONE: CLI-Compare Change compare to compare against pasted crc as well as compare a file with a hash code in a file sha256:xxxxx 
+
 
 ## Build process:
 
@@ -87,15 +91,6 @@ constructed in VS-Code by copilot (because Claude said I was out of my quota)
 ```
     cd /hashmon
     rm -rf build
-    cmake -S . -B build
-    cmake --build build -j2
-    ctest --test-dir build --output-on-failure
-```
-
-- Test cases
-
-```
-    cd /hashmon
     cmake -S . -B build
     cmake --build build -j2
     ctest --test-dir build --output-on-failure
