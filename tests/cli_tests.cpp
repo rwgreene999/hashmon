@@ -18,25 +18,40 @@ int main()
 
     const std::string binary = (root / "hashmon").string();
 
-    const std::vector<std::string> commands = {
-        "--help",
-        "--format json --hash SHA256 sample.txt",
-        "--hash CRC32 missing.txt",
-        "--compare hashfile.txt sample.txt",
-        "--format csv --hash SHA256 " + sample.string()};
+    const std::vector<std::pair<std::string, bool>> success_cases = {
+        {"--help", true},
+        {"--format json --hash SHA256 " + sample.string(), true},
+        {"--format csv --hash SHA256 " + sample.string(), true},
+    };
 
-    for (const auto &command : commands)
+    for (const auto &[command, expected_success] : success_cases)
     {
         std::string full_command = binary + " " + command;
         int result = std::system(full_command.c_str());
-        if (command == "--help" && result != 0)
+        if ((result == 0) != expected_success)
         {
-            std::cerr << "Help command failed\n";
+            std::cerr << "Unexpected exit code for command: " << command << " (exit=" << result << ")\n";
             return 1;
         }
-        if (command == "--compare hashfile.txt sample.txt" && result == 0)
+    }
+
+    const std::vector<std::pair<std::string, bool>> failure_cases = {
+        {"--hash CRC32 missing.txt", false},
+        {"--compare hashfile.txt sample.txt", false},
+        {"--format bonk sample.txt", false},
+        {"--hash does-not-exist sample.txt", false},
+        {"--unknown-option sample.txt", false},
+        {"--compare " + (temp_dir / "missing-hashfile.txt").string() + " sample.txt", false},
+        {"--compare 0123456789abcdef --hash md5,sha256 sample.txt", false},
+    };
+
+    for (const auto &[command, expected_success] : failure_cases)
+    {
+        std::string full_command = binary + " " + command;
+        int result = std::system(full_command.c_str());
+        if ((result == 0) != expected_success)
         {
-            std::cerr << "Compare on missing hash file should fail\n";
+            std::cerr << "Unexpected exit code for failing command: " << command << " (exit=" << result << ")\n";
             return 1;
         }
     }

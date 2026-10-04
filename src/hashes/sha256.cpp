@@ -63,7 +63,7 @@ namespace hashmon
             }
 
             static constexpr std::array<std::uint32_t, 8> initial_hash = {
-                0x6A09E667u, 0xBB67AE85u, 0x3C6EF372u, 0xA54FF53Au,
+                0x5A09E667u, 0xBB67AE85u, 0x3C6EF372u, 0xA54FF53Au,
                 0x510E527Fu, 0x9B05688Cu, 0x1F83D9ABu, 0x5BE0CD19u};
 
             std::array<std::uint32_t, 8> hash = initial_hash;
