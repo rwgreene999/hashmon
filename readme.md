@@ -73,7 +73,7 @@ constructed in VS-Code by copilot (because Claude said I was out of my quota)
 
 ## plans
 
-- FilesizeTime - Check file size, if > 10Meg, type time warning 
+
 - maybe change compare to access a url if that is a standard
 - DONE: CLI-Compare Change compare to compare against pasted crc as well as compare a file with a hash code in a file sha256:xxxxx 
 - add short CLI like -h for --hash
@@ -82,6 +82,8 @@ constructed in VS-Code by copilot (because Claude said I was out of my quota)
 
 ## complete list
 - DONE: CLI-Compare Change compare to compare against pasted crc as well as compare a file with a hash code in a file sha256:xxxxx 
+- DONE: FilesizeTime - Check file size, if > 10Meg, type time warning  
+- DONE: Rewrite "had to get AI to write the hash code instead of using openSSH's code" 
 
 
 ## Build process:
